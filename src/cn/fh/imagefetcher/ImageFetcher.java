@@ -43,9 +43,11 @@ public class ImageFetcher {
 		this.urlList.stream().forEach( (src) -> {
 			try {
 				URL u = new URL(src);
+
 				System.out.println("downloading: " + src);
-				saveImage(u.openStream());
-				System.out.println("done");
+				String fileName = saveImage(u.openStream());
+				System.out.println("[" + fileName + "] done");
+
 			} catch (MalformedURLException e) {
 				// not a valid URL
 				System.out.println("unknown:" + src);
@@ -68,19 +70,20 @@ public class ImageFetcher {
 
 			src = StringUtils.adjustUrl(src, this.url);
 
-			System.out.println("add url:" + src);
+			System.out.println("image detected: " + src);
 			this.urlList.add(src);
 		}
 	}
 
-	private void saveImage(InputStream inStream) throws IOException {
+	private String saveImage(InputStream inStream) throws IOException {
 		// determin image format
 		byte[] tenBytes = new byte[10];
 		inStream.read(tenBytes);
 		String extension = ImageFormat.getExtension(tenBytes);
 
 		// save image
-		FileOutputStream fOut = new FileOutputStream(nextSequence() + extension);
+		String fileName = nextSequence() + extension;
+		FileOutputStream fOut = new FileOutputStream(fileName);
 		fOut.write(tenBytes);
 		byte[] buf = new byte[4096];
 		int len;
@@ -91,6 +94,7 @@ public class ImageFetcher {
 		fOut.close();
 		inStream.close();
 
+		return fileName;
 	}
 
 	public static int nextSequence() {
