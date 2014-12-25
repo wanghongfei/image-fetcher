@@ -50,7 +50,7 @@ public class ImageFetcher {
 				// not a valid URL
 				System.out.println("unknown:" + src);
 			} catch (IOException e) {
-				System.out.println("IO error:");
+				System.out.println("resource unreachable: " + src);
 			}
 		});
 	}
@@ -61,9 +61,14 @@ public class ImageFetcher {
 
 		for (Element tag : imgElements) {
 			String src = tag.attr("src");
+			// this <img> tag does not have 'src' attribute
+			if (null == src) {
+				continue;
+			}
 
 			src = StringUtils.adjustUrl(src, this.url);
 
+			System.out.println("add url:" + src);
 			this.urlList.add(src);
 		}
 	}

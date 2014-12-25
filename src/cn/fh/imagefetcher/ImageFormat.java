@@ -2,7 +2,7 @@ package cn.fh.imagefetcher;
 
 public class ImageFormat {
 	public static String getExtension(byte[] tenBytes) {
-		if (tenBytes[3] == 'P' && tenBytes[4] == 'N' && tenBytes[5] == 'G') {
+		if (tenBytes[1] == 'P' && tenBytes[2] == 'N' && tenBytes[3] == 'G') {
 			return ".png";
 		}
 		
