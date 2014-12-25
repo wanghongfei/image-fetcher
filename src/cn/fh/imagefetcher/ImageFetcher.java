@@ -57,6 +57,10 @@ public class ImageFetcher {
 		});
 	}
 
+	/**
+	 * Parse html document and find out every link of '<img>' tag
+	 * @throws IOException
+	 */
 	private void parse() throws IOException {
 		Document doc = Jsoup.parse(getHtml(url));
 		Elements imgElements = doc.select("img");
@@ -75,13 +79,20 @@ public class ImageFetcher {
 		}
 	}
 
+	/**
+	 * Write image to file system
+	 * @param inStream
+	 * @return The name of this image file
+	 * @throws IOException
+	 */
 	private String saveImage(InputStream inStream) throws IOException {
-		// determin image format
+		// determine image format
 		byte[] tenBytes = new byte[10];
 		inStream.read(tenBytes);
 		String extension = ImageFormat.getExtension(tenBytes);
 
 		// save image
+		// generate file name
 		String fileName = nextSequence() + extension;
 		FileOutputStream fOut = new FileOutputStream(fileName);
 		fOut.write(tenBytes);
@@ -101,8 +112,16 @@ public class ImageFetcher {
 		return ImageFetcher.imageNo++;
 	}
 
+	/**
+	 * Fetch html code from target URL
+	 * @param url
+	 * @return
+	 * @throws IOException
+	 */
 	private String getHtml(String url) throws IOException {
 		URL u = new URL(url);
+		
+		System.out.println("connecting...");
 
 		BufferedInputStream bis = new BufferedInputStream(u.openStream());
 		InputStreamReader reader = new InputStreamReader(bis);
