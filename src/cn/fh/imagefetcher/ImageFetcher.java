@@ -2,12 +2,17 @@ package cn.fh.imagefetcher;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +33,8 @@ public class ImageFetcher {
 	}
 
 	public static void main(String[] args) {
-		ImageFetcher imgFetcher = new ImageFetcher(args[0]);
+		//ImageFetcher imgFetcher = new ImageFetcher(args[0]);
+		ImageFetcher imgFetcher = new ImageFetcher("http://www.baidu.com");
 		imgFetcher.startDownload();
 		
 	}
@@ -45,14 +51,20 @@ public class ImageFetcher {
 				URL u = new URL(src);
 
 				System.out.println("downloading: " + src);
-				String fileName = saveImage(u.openStream());
+
+				String fileName = null;
+				try (InputStream inStream = u.openStream()) {
+					fileName = saveImage(u.openStream());
+				} catch (IOException ex) {
+					System.out.println("[ERROR] cannot create new file");
+					System.exit(1);
+				}
+				
 				System.out.println("[" + fileName + "] done");
 
 			} catch (MalformedURLException e) {
 				// not a valid URL
 				System.out.println("unknown:" + src);
-			} catch (IOException e) {
-				System.out.println("resource unreachable: " + src);
 			}
 		});
 	}
@@ -80,7 +92,10 @@ public class ImageFetcher {
 	}
 
 	/**
-	 * Write image to file system
+	 * Write image to file system.
+	 * 
+	 * <p> Never close the InputStream
+	 * 
 	 * @param inStream
 	 * @return The name of this image file
 	 * @throws IOException
@@ -91,10 +106,21 @@ public class ImageFetcher {
 		inStream.read(tenBytes);
 		String extension = ImageFormat.getExtension(tenBytes);
 
-		// save image
 		// generate file name
 		String fileName = nextSequence() + extension;
-		FileOutputStream fOut = new FileOutputStream(fileName);
+
+		// save image
+		// the NIO way
+		ByteBuffer buf = ByteBuffer.wrap(tenBytes);
+		buf.put(tenBytes);
+		ReadableByteChannel originalChan = Channels.newChannel(inStream);
+		try ( FileChannel fChan = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE) ) {
+			fChan.write(buf);
+			fChan.transferFrom(originalChan, 0, Integer.MAX_VALUE);
+		}
+
+
+/*		FileOutputStream fOut = new FileOutputStream(fileName);
 		fOut.write(tenBytes);
 		byte[] buf = new byte[4096];
 		int len;
@@ -102,8 +128,9 @@ public class ImageFetcher {
 			fOut.write(buf, 0, len);
 		}
 
-		fOut.close();
-		inStream.close();
+		fOut.close();*/
+
+		//inStream.close(); // don't need it anymore
 
 		return fileName;
 	}
@@ -121,12 +148,13 @@ public class ImageFetcher {
 	private String getHtml(String url) throws IOException {
 		URL u = new URL(url);
 		
-		System.out.println("connecting...");
+		System.out.println("connecting to [" + url + "]");
 
 		BufferedInputStream bis = new BufferedInputStream(u.openStream());
 		InputStreamReader reader = new InputStreamReader(bis);
 		BufferedReader bufReader = new BufferedReader(reader);
 
+		System.out.println("connected");
 		String line = null;
 		StringBuilder bufHtml = new StringBuilder();
 		while ((line = bufReader.readLine()) != null) {
