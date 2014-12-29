@@ -45,7 +45,9 @@ public class ImageFetcher {
 
 	public void startDownload() {
 		try {
-			parse();
+			String html = getHtml(url);
+			System.out.println("start parsing...");
+			parse(html);
 		} catch (IOException e) {
 			System.out.println("connection failed");
 		}
@@ -59,8 +61,8 @@ public class ImageFetcher {
 	 * Parse html document and find out every link of '<img>' tag
 	 * @throws IOException
 	 */
-	private void parse() throws IOException {
-		Document doc = Jsoup.parse(getHtml(url));
+	private void parse(String html) throws IOException {
+		Document doc = Jsoup.parse(html);
 		Elements imgElements = doc.select("img");
 
 		for (Element tag : imgElements) {
@@ -144,6 +146,7 @@ public class ImageFetcher {
 		BufferedReader bufReader = new BufferedReader(reader);
 
 		System.out.println("connected");
+		System.out.println("downloading html...");
 		String line = null;
 		StringBuilder bufHtml = new StringBuilder();
 		while ((line = bufReader.readLine()) != null) {
@@ -151,6 +154,7 @@ public class ImageFetcher {
 		}
 
 		bis.close();
+		System.out.println("downloading finished");
 
 		return bufHtml.toString();
 	}
