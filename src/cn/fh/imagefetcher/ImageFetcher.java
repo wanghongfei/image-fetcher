@@ -32,9 +32,13 @@ public class ImageFetcher {
 		
 	}
 
+	/**
+	 * Read URL from the first command-line parameter
+	 * @param args
+	 */
 	public static void main(String[] args) {
-		//ImageFetcher imgFetcher = new ImageFetcher(args[0]);
-		ImageFetcher imgFetcher = new ImageFetcher("http://www.baidu.com");
+		ImageFetcher imgFetcher = new ImageFetcher(args[0]);
+		//ImageFetcher imgFetcher = new ImageFetcher("http://www.baidu.com");
 		imgFetcher.startDownload();
 		
 	}
@@ -47,25 +51,7 @@ public class ImageFetcher {
 		}
 
 		this.urlList.stream().forEach( (src) -> {
-			try {
-				URL u = new URL(src);
-
-				System.out.println("downloading: " + src);
-
-				String fileName = null;
-				try (InputStream inStream = u.openStream()) {
-					fileName = saveImage(u.openStream());
-				} catch (IOException ex) {
-					System.out.println("[ERROR] cannot create new file");
-					System.exit(1);
-				}
-				
-				System.out.println("[" + fileName + "] done");
-
-			} catch (MalformedURLException e) {
-				// not a valid URL
-				System.out.println("unknown:" + src);
-			}
+			saveImage(new DownloadThread(src));
 		});
 	}
 
@@ -100,9 +86,12 @@ public class ImageFetcher {
 	 * @return The name of this image file
 	 * @throws IOException
 	 */
-	private String saveImage(InputStream inStream) throws IOException {
+	//private String saveImage(InputStream inStream) throws IOException {
+	private void saveImage(Runnable run) {
+		new Thread(run).start();
+
 		// determine image format
-		byte[] tenBytes = new byte[10];
+/*		byte[] tenBytes = new byte[10];
 		inStream.read(tenBytes);
 		String extension = ImageFormat.getExtension(tenBytes);
 
@@ -118,7 +107,7 @@ public class ImageFetcher {
 			fChan.write(buf);
 			fChan.transferFrom(originalChan, 0, Integer.MAX_VALUE);
 		}
-
+*/
 
 /*		FileOutputStream fOut = new FileOutputStream(fileName);
 		fOut.write(tenBytes);
@@ -132,10 +121,10 @@ public class ImageFetcher {
 
 		//inStream.close(); // don't need it anymore
 
-		return fileName;
+		//return fileName;
 	}
 
-	public static int nextSequence() {
+	public static Integer nextSequence() {
 		return ImageFetcher.imageNo++;
 	}
 
