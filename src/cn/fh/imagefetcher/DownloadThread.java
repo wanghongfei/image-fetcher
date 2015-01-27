@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
@@ -21,8 +22,12 @@ public class DownloadThread implements Runnable {
 
 	@Override
 	public void run() {
-		try (InputStream inStream = connect()) {
-			saveImage(inStream);
+		try {
+			this.url = new URL(urlString);
+			URLConnection conn = url.openConnection();
+			int len = conn.getContentLength();
+			saveImage(conn.getInputStream(), len);
+
 		} catch (MalformedURLException e) {
 			System.out.println("[ERROR] Invalid url:" + this.urlString);
 		} catch (IOException e) {
@@ -32,13 +37,13 @@ public class DownloadThread implements Runnable {
 		}
 	}
 	
-	private InputStream connect() throws MalformedURLException, IOException {
+	/*private InputStream connect() throws MalformedURLException, IOException {
 		this.url = new URL(this.urlString);
 		
 		return url.openStream();
-	}
+	}*/
 
-	private void saveImage(InputStream inStream) throws IOException {
+	private void saveImage(InputStream inStream, int fileSize) throws IOException {
 		System.out.println("downloading: " + urlString);
 
 		// determine image format and generate file name
@@ -48,7 +53,8 @@ public class DownloadThread implements Runnable {
 
 		// save image
 		// the NIO way
-		ByteBuffer buf = ByteBuffer.allocate(1024 * 10); // 10KB
+		ByteBuffer buf = ByteBuffer.allocate(1024 * 100); // 100KB
+		//ByteBuffer buf = ByteBuffer.allocate(fileSize);
 		buf.put(tenBytes);
 		ReadableByteChannel originalChan = Channels.newChannel(inStream);
 		try (FileChannel fChan = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {

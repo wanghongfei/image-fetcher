@@ -1,18 +1,11 @@
 package cn.fh.imagefetcher;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
+import java.io.Reader;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +18,9 @@ public class ImageFetcher {
 	private String url;
 	private List<String> urlList = new ArrayList<String>();
 
+
 	public static int imageNo = 1;
+	public static int BUF_SIZE = 1024 * 10 * 10; //100K
 
 	public ImageFetcher(String url) {
 		this.url = url;
@@ -39,6 +34,7 @@ public class ImageFetcher {
 	public static void main(String[] args) {
 		ImageFetcher imgFetcher = new ImageFetcher(args[0]);
 		//ImageFetcher imgFetcher = new ImageFetcher("http://www.baidu.com");
+		//ImageFetcher imgFetcher = new ImageFetcher("http://www.qq.com");
 		imgFetcher.startDownload();
 		
 	}
@@ -46,6 +42,7 @@ public class ImageFetcher {
 	public void startDownload() {
 		try {
 			String html = getHtml(url);
+			System.out.println(html);
 			System.out.println("start parsing...");
 			parse(html);
 		} catch (IOException e) {
@@ -91,43 +88,32 @@ public class ImageFetcher {
 	//private String saveImage(InputStream inStream) throws IOException {
 	private void saveImage(Runnable run) {
 		new Thread(run).start();
-
-		// determine image format
-/*		byte[] tenBytes = new byte[10];
-		inStream.read(tenBytes);
-		String extension = ImageFormat.getExtension(tenBytes);
-
-		// generate file name
-		String fileName = nextSequence() + extension;
-
-		// save image
-		// the NIO way
-		ByteBuffer buf = ByteBuffer.wrap(tenBytes);
-		buf.put(tenBytes);
-		ReadableByteChannel originalChan = Channels.newChannel(inStream);
-		try ( FileChannel fChan = FileChannel.open(Paths.get(fileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE) ) {
-			fChan.write(buf);
-			fChan.transferFrom(originalChan, 0, Integer.MAX_VALUE);
-		}
-*/
-
-/*		FileOutputStream fOut = new FileOutputStream(fileName);
-		fOut.write(tenBytes);
-		byte[] buf = new byte[4096];
-		int len;
-		while ((len = inStream.read(buf)) != -1) {
-			fOut.write(buf, 0, len);
-		}
-
-		fOut.close();*/
-
-		//inStream.close(); // don't need it anymore
-
-		//return fileName;
 	}
 
 	public static Integer nextSequence() {
 		return ImageFetcher.imageNo++;
+	}
+	
+	private String readWithoutLength(InputStream in) throws IOException {
+		byte[] buf = new byte[BUF_SIZE]; // 100K
+		StringBuilder sb = new StringBuilder();
+		int len = 0;
+		while ( (len = in.read(buf)) != -1 ) {
+			sb.append(new String(buf, 0, len));
+		}
+		
+		return sb.toString();
+	}
+	
+	private String readWithLength(InputStream in, final int LEN) throws IOException {
+		byte[] buf = new byte[LEN];
+		ByteBuffer byteBuf = ByteBuffer.allocate(LEN);
+		int len = 0;
+		while ( (len = in.read(buf)) != -1 ) {
+			byteBuf.put(buf, 0, len);
+		}	
+		
+		return new String(byteBuf.array());
 	}
 
 	/**
@@ -140,22 +126,19 @@ public class ImageFetcher {
 		URL u = new URL(url);
 		
 		System.out.println("connecting to [" + url + "]");
-
-		BufferedInputStream bis = new BufferedInputStream(u.openStream());
-		InputStreamReader reader = new InputStreamReader(bis);
-		BufferedReader bufReader = new BufferedReader(reader);
-
+		URLConnection conn = u.openConnection();
+		conn.connect();
 		System.out.println("connected");
+		
+		int fileSize = conn.getContentLength();
+		System.out.println("file size:" + fileSize);
 		System.out.println("downloading html...");
-		String line = null;
-		StringBuilder bufHtml = new StringBuilder();
-		while ((line = bufReader.readLine()) != null) {
-			bufHtml.append(line);
+		InputStream inStream = conn.getInputStream();
+		if (-1 == fileSize) {
+			return readWithoutLength(inStream);
+		} else {
+			return readWithLength(inStream, fileSize);
 		}
 
-		bis.close();
-		System.out.println("downloading finished");
-
-		return bufHtml.toString();
 	}
 }
